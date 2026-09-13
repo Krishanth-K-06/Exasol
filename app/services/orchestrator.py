@@ -7,10 +7,13 @@ from typing import Any
 from app.agents.engineer import EngineerAgent
 from app.agents.investigator import InvestigatorAgent
 from app.agents.verifier import VerifierAgent
+from app.agents.provider import LLMProvider
 from app.control import PolicyEngine, SQLValidator
 from app.deployment.controller import DeploymentController
 from app.memory.service import MemoryService
 from app.observability.engine import CsvObservability
+from app.observability.exasol import ExasolObservability
+from app.db.exasol import ExasolAdapter
 from app.repositories.local_store import LocalIncidentRepository
 from app.repositories.mirrored_repository import MirroredIncidentRepository
 from app.db.postgres import PostgresStore
@@ -21,9 +24,9 @@ from app.simulation.sandbox import Sandbox
 
 
 class IncidentOrchestrator:
-    def __init__(self, data_root: Path, state_dir: Path, qdrant_url: str | None = None, qdrant_api_key: str | None = None):
+    def __init__(self, data_root: Path, state_dir: Path, qdrant_url: str | None = None, qdrant_api_key: str | None = None, llm_provider: LLMProvider | None = None, observability: Any | None = None):
         state_dir.mkdir(parents=True, exist_ok=True)
-        self.observability = CsvObservability(data_root)
+        self.observability = observability or CsvObservability(data_root)
         self.memory = MemoryService(state_dir, qdrant_url, qdrant_api_key)
         local_repository = LocalIncidentRepository(state_dir / "incidents.json")
         try:
@@ -31,8 +34,8 @@ class IncidentOrchestrator:
         except Exception:
             postgres_repository = None
         self.repository = MirroredIncidentRepository(local_repository, postgres_repository)
-        self.investigator = InvestigatorAgent(self.observability, self.memory)
-        self.engineer = EngineerAgent()
+        self.investigator = InvestigatorAgent(self.observability, self.memory, llm_provider)
+        self.engineer = EngineerAgent(llm_provider)
         self.verifier = VerifierAgent()
         self.validator = SQLValidator()
         self.policy = PolicyEngine()

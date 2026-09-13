@@ -1,15 +1,28 @@
 from __future__ import annotations
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 
 from app.config.runtime import runtime
+from app.agents.provider import get_llm_provider, MockLLMProvider
+from app.db.exasol import ExasolAdapter
+from app.observability.exasol import ExasolObservability
 from app.schemas.incident import ApprovalRequest, IncidentCreate, IncidentState
 from app.services.orchestrator import IncidentOrchestrator
 
 from fastapi.middleware.cors import CORSMiddleware
 
 runtime.ensure_state_dir()
-orchestrator = IncidentOrchestrator(runtime.data_root, runtime.state_dir, runtime.qdrant_url, runtime.qdrant_api_key)
+llm_provider = get_llm_provider()
+observability = None
+if runtime.observability_backend.lower() == "exasol":
+    observability = ExasolObservability(
+        runtime.data_root,
+        ExasolAdapter(runtime.exasol_dsn, runtime.exasol_user, runtime.exasol_password, runtime.exasol_schema),
+    )
+orchestrator = IncidentOrchestrator(runtime.data_root, runtime.state_dir, runtime.qdrant_url, runtime.qdrant_api_key, llm_provider, observability)
 app = FastAPI(title="Closed-Loop Autonomous Data Incident Agent", version="1.0.0")
 
 app.add_middleware(
@@ -28,12 +41,25 @@ def root() -> dict[str, str]:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "data_root": str(runtime.data_root), "exasol_dsn": runtime.exasol_dsn, "memory": "qdrant+local-fallback"}
+    return {
+        "status": "ok",
+        "data_root": str(runtime.data_root),
+        "exasol_dsn": runtime.exasol_dsn,
+        "observability_backend": runtime.observability_backend,
+        "memory": "qdrant+local-fallback",
+        "agent_provider": "deterministic" if isinstance(llm_provider, MockLLMProvider) else "external_llm",
+        "external_llm_configured": not isinstance(llm_provider, MockLLMProvider),
+    }
 
 
 @app.get("/observability/report")
 def observability_report() -> dict:
-    return orchestrator.observability.report()
+    try:
+        return orchestrator.observability.report()
+    except Exception as error:
+        if runtime.observability_backend.lower() == "exasol":
+            raise HTTPException(status_code=503, detail="Exasol is unavailable. Start Exasol Personal and verify the configured DSN.") from error
+        raise
 
 
 @app.post("/incidents", response_model=IncidentState)

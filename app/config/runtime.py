@@ -18,6 +18,7 @@ class RuntimeConfig(BaseModel):
     exasol_password: str = os.getenv("EXASOL_PASSWORD", "exasol")
     exasol_schema: str = os.getenv("EXASOL_SCHEMA", "INCIDENT_ANALYTICS")
     llm_provider: str = os.getenv("LLM_PROVIDER", "mock")
+    observability_backend: str = os.getenv("OBSERVABILITY_BACKEND", "csv")
     openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     max_rows_affected: int = Field(default=100_000, ge=1)

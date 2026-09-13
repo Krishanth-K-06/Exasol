@@ -125,6 +125,10 @@ def get_llm_provider() -> LLMProvider:
     - sk-*  key → OpenAI API
     - anything else / missing → MockLLMProvider (deterministic agents)
     """
+    provider_mode = os.getenv("LLM_PROVIDER", "mock").lower()
+    if provider_mode in {"mock", "deterministic"}:
+        return MockLLMProvider()
+
     api_key = os.getenv("OPENAI_API_KEY", "")
     if api_key and not api_key.startswith("mock-") and len(api_key) > 10:
         return OpenAICompatibleProvider(api_key=api_key)

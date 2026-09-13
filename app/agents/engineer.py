@@ -4,11 +4,15 @@ import re
 from typing import Any
 from uuid import uuid4
 
+from app.agents.provider import LLMProvider, MockLLMProvider
 from app.schemas.incident import FixProposal, IncidentState
 
 
 class EngineerAgent:
     """Produces proposals only. The control layer owns authorization and execution."""
+
+    def __init__(self, provider: LLMProvider | None = None):
+        self.provider = provider or MockLLMProvider()
 
     def propose(self, incident: IncidentState) -> FixProposal:
         scenario = incident.scenario_id or ""
@@ -26,7 +30,7 @@ class EngineerAgent:
             "SCN-10": ("CALL backfill_late_partition(:partition_id)", "Backfill late-arriving events and recompute downstream metrics.", "Restore downstream metrics from the pre-backfill snapshot."),
         }
         sql, description, rollback = statements.get(scenario, ("SELECT 1", "No mutation proposal is available for this scenario.", "No deployment."))
-        return FixProposal(
+        deterministic_fix = FixProposal(
             fix_type="SQL" if sql.startswith(("UPDATE", "DELETE", "INSERT")) else "PIPELINE",
             sql=sql,
             description=description,
@@ -36,3 +40,15 @@ class EngineerAgent:
             risk_factors=["requires sandbox execution", "must be verified after deployment"],
             idempotency_key=re.sub(r"[^A-Za-z0-9]+", "-", f"{incident.incident_id}-{scenario}-{uuid4()}")[:80],
         )
+        if isinstance(self.provider, MockLLMProvider):
+            return deterministic_fix
+
+        try:
+            model_fix = self.provider.structured(
+                "You are a data reliability engineer. Propose a reversible, minimal fix. Return only structured JSON.",
+                f"Incident: {incident.model_dump_json()}\nDeterministic candidate: {deterministic_fix.model_dump_json()}",
+                FixProposal,
+            )
+            return model_fix.model_copy(update={"idempotency_key": deterministic_fix.idempotency_key})
+        except Exception:
+            return deterministic_fix
