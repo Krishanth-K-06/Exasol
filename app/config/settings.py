@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     EXASOL_CONNECTION_TIMEOUT: int = 30
     EXASOL_SOCKET_TIMEOUT: int = 60
 
+    POSTGRES_URL: str = "postgresql+psycopg://incident:mock-postgres-password@127.0.0.1:5432/incidents"
+    QDRANT_URL: str = "http://127.0.0.1:6333"
+    QDRANT_API_KEY: Optional[str] = None
+    LLM_PROVIDER: str = "mock"
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    DATA_ROOT: str = "/Users/admin/Downloads/autonomous_data_incident_platform"
+    LOCAL_STATE_DIR: str = ".local-state"
+
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
         env_file_encoding="utf-8",

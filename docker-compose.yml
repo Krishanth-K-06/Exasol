@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: incidents
+      POSTGRES_USER: incident
+      POSTGRES_PASSWORD: mock-postgres-password
+    ports: ["5433:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+  qdrant:
+    image: qdrant/qdrant:v1.12.1
+    ports: ["6333:6333"]
+    volumes: ["qdrant_data:/qdrant/storage"]
+  backend:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_URL: postgresql+psycopg://incident:mock-postgres-password@postgres:5432/incidents
+      QDRANT_URL: http://qdrant:6333
+      DATA_ROOT: /data
+    ports: ["8000:8000"]
+    depends_on: [postgres, qdrant]
+    volumes:
+      - ".:/app"
+      - "/Users/admin/Downloads/autonomous_data_incident_platform:/data:ro"
+  frontend:
+    build: ./frontend
+    ports: ["8080:80"]
+    depends_on: [backend]
+volumes:
+  postgres_data:
+  qdrant_data:

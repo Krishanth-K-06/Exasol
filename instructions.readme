@@ -1,0 +1,2585 @@
+You are a senior backend engineer, data engineer, AI systems engineer, and software architect.
+
+I want you to BUILD the complete project described below from scratch.
+
+PROJECT NAME:
+Closed-Loop Autonomous Data Incident Agent
+
+PROJECT GOAL:
+Build a production-style autonomous data incident resolution platform that can detect data incidents, investigate their root cause, propose a remediation, safely simulate the remediation, verify the result, calculate risk, either automatically deploy or request human approval, verify the production result, rollback if necessary, and store the incident/fix outcome as memory for future incidents.
+
+This should NOT be a simple chatbot.
+
+It should be a real software system where:
+- deterministic software handles safety-critical operations
+- AI agents handle investigation/reasoning
+- agents NEVER get unrestricted production access
+- every proposed action passes through a control/policy layer
+- fixes are tested in a sandbox before production
+- verification is mandatory
+- risky operations require human approval
+- successful incidents are stored in vector memory
+- similar future incidents can reuse previous solutions
+
+The final project should be portfolio/resume quality and demonstrate:
+- Backend engineering
+- Data engineering
+- SQL
+- Python
+- FastAPI
+- PostgreSQL
+- Exasol
+- LangGraph
+- LLM agents
+- Qdrant
+- data quality
+- observability
+- workflow orchestration
+- sandbox execution
+- risk management
+- human-in-the-loop systems
+- rollback
+- auditability
+- Docker
+- testing
+- clean architecture
+
+==================================================
+1. HIGH-LEVEL SYSTEM
+==================================================
+
+Implement this closed loop:
+
+DETECT
+   ↓
+INVESTIGATE
+   ↓
+ROOT CAUSE ANALYSIS
+   ↓
+GENERATE REMEDIATION
+   ↓
+POLICY / CONTROL CHECK
+   ↓
+SIMULATE IN SANDBOX
+   ↓
+VERIFY
+   ↓
+RISK ASSESSMENT
+   ↓
+AUTO DEPLOY OR HUMAN APPROVAL
+   ↓
+PRODUCTION DEPLOYMENT
+   ↓
+POST-DEPLOY VERIFICATION
+   ↓
+PASS → CLOSE INCIDENT
+FAIL → ROLLBACK
+   ↓
+STORE INCIDENT + FIX + OUTCOME IN MEMORY
+   ↓
+LEARN FROM PREVIOUS INCIDENTS
+
+The system should behave like an autonomous data reliability engineer.
+
+==================================================
+2. ARCHITECTURE
+==================================================
+
+Use this logical architecture:
+
+                    ┌──────────────────────────┐
+                    │       Data Sources       │
+                    │                          │
+                    │ Customers                │
+                    │ Products                 │
+                    │ Orders                   │
+                    │ Payments                 │
+                    │ Shipments                 │
+                    │ External APIs             │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │     Data Pipelines        │
+                    │                          │
+                    │ ETL / Batch / API        │
+                    │ Simulated Pipeline Runs   │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │          EXASOL           │
+                    │                          │
+                    │ Analytical Data           │
+                    │ Orders                    │
+                    │ Payments                  │
+                    │ Shipments                 │
+                    │ Metrics                   │
+                    │ Quality Metrics           │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │   Data Observability      │
+                    │                          │
+                    │ Freshness                 │
+                    │ Row Count                 │
+                    │ NULL Rate                 │
+                    │ Duplicates                │
+                    │ Schema                    │
+                    │ Referential Integrity     │
+                    │ Business Metrics          │
+                    └────────────┬─────────────┘
+                                 │
+                                 │ Incident
+                                 ▼
+                    ┌──────────────────────────┐
+                    │       FastAPI API         │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │   LangGraph Orchestrator  │
+                    │                          │
+                    │ State Machine             │
+                    │ Retry                     │
+                    │ Checkpoints               │
+                    │ Routing                   │
+                    └──────┬─────────┬─────────┘
+                           │         │
+              ┌────────────┘         └────────────┐
+              ▼                                   ▼
+     ┌───────────────────┐               ┌───────────────────┐
+     │ Investigator      │               │ Engineer          │
+     │ Agent             │               │ Agent             │
+     │                   │               │                   │
+     │ Root Cause        │               │ Generate Fix      │
+     │ Analysis          │               │ SQL/Python        │
+     │                   │               │                   │
+     └─────────┬─────────┘               └─────────┬─────────┘
+               │                                   │
+               └────────────────┬──────────────────┘
+                                ▼
+                   ┌─────────────────────────┐
+                   │   AGENT CONTROL LAYER   │
+                   │                         │
+                   │ Permissions              │
+                   │ SQL Validation           │
+                   │ Table Allowlist          │
+                   │ Query Limits             │
+                   │ Mutation Restrictions    │
+                   │ Risk Rules               │
+                   │ Audit Logging             │
+                   │ Circuit Breakers          │
+                   └────────────┬────────────┘
+                                │
+                                ▼
+                   ┌─────────────────────────┐
+                   │   SIMULATION SANDBOX    │
+                   │                         │
+                   │ Temporary Schema         │
+                   │ Isolated Data            │
+                   │ Execute Proposed Fix     │
+                   │ Capture Before/After     │
+                   └────────────┬────────────┘
+                                │
+                                ▼
+                   ┌─────────────────────────┐
+                   │       VERIFIER          │
+                   │                         │
+                   │ Row Count               │
+                   │ NULL Rate               │
+                   │ Duplicates              │
+                   │ FK Integrity            │
+                   │ Revenue                 │
+                   │ AOV                     │
+                   │ Freshness               │
+                   │ Downstream Metrics      │
+                   │ Blast Radius            │
+                   └────────────┬────────────┘
+                                │
+                                ▼
+                   ┌─────────────────────────┐
+                   │      RISK ENGINE        │
+                   │                         │
+                   │ LOW                     │
+                   │ MEDIUM                  │
+                   │ HIGH                    │
+                   │ CRITICAL                │
+                   └──────┬──────────┬───────┘
+                          │          │
+                     LOW/MEDIUM      HIGH
+                          │          │
+                          ▼          ▼
+                   AUTO DEPLOY    HUMAN APPROVAL
+                          │          │
+                          └────┬─────┘
+                               ▼
+                    ┌────────────────────────┐
+                    │     PRODUCTION        │
+                    │     DEPLOYMENT        │
+                    └───────────┬────────────┘
+                                │
+                                ▼
+                    ┌────────────────────────┐
+                    │ POST-DEPLOY VERIFIER   │
+                    └──────────┬─────────────┘
+                               │
+                         ┌─────┴─────┐
+                         │           │
+                       PASS         FAIL
+                         │           │
+                         ▼           ▼
+                     CLOSE       ROLLBACK
+                         │           │
+                         └─────┬─────┘
+                               ▼
+                    ┌────────────────────────┐
+                    │        QDRANT         │
+                    │   Incident Memory     │
+                    │                        │
+                    │ Previous incidents     │
+                    │ Root causes             │
+                    │ Successful fixes       │
+                    │ Verification results   │
+                    └────────────────────────┘
+
+==================================================
+3. TECHNOLOGY STACK
+==================================================
+
+Use:
+
+Backend:
+- Python 3.12+
+- FastAPI
+- Pydantic
+- SQLAlchemy
+- PostgreSQL
+- psycopg
+
+AI:
+- LangGraph
+- LangChain where useful
+- OpenAI-compatible LLM interface
+- Structured outputs wherever possible
+
+Analytics:
+- Exasol
+
+Vector memory:
+- Qdrant
+
+Infrastructure:
+- Docker
+- Docker Compose
+
+Testing:
+- pytest
+- integration tests
+- unit tests
+
+Optional:
+- Redis only if genuinely useful for caching/locks/job state.
+Do NOT add unnecessary technologies.
+
+Frontend:
+Build a lightweight dashboard.
+Use React + TypeScript if practical.
+The dashboard should show:
+- active incidents
+- incident severity
+- root cause
+- proposed remediation
+- simulation results
+- verification results
+- risk score
+- approval status
+- deployment status
+- rollback status
+- incident history
+
+Do not make the frontend the main focus.
+The backend/agent system is the core.
+
+==================================================
+4. DATABASE RESPONSIBILITIES
+==================================================
+
+IMPORTANT:
+
+Do NOT put every type of information into Exasol.
+
+Use:
+
+EXASOL:
+Large analytical/business data:
+- customers
+- products
+- orders
+- order_items
+- payments
+- shipments
+- daily_business_metrics
+- data quality metrics
+- derived analytical tables
+
+POSTGRESQL:
+Operational/control metadata:
+- pipeline_metadata
+- pipeline_logs
+- schema_history
+- data_lineage
+- incidents
+- incident_fixes
+- agent executions
+- approvals
+- deployment records
+- audit logs
+- risk assessments
+- workflow state
+
+QDRANT:
+Vector memory:
+- historical incidents
+- root causes
+- successful fixes
+- verification outcomes
+- remediation patterns
+
+SANDBOX:
+Temporary isolated schema/data used to test fixes.
+
+==================================================
+5. SYNTHETIC DATA
+==================================================
+
+Use the following synthetic e-commerce data model.
+
+CUSTOMERS:
+- customer_id
+- first_name
+- last_name
+- email
+- phone
+- country
+- state
+- city
+- signup_date
+- segment
+- status
+- created_at
+- updated_at
+
+PRODUCTS:
+- product_id
+- product_name
+- category
+- brand
+- price
+- cost
+- stock
+- supplier
+- status
+- created_at
+- updated_at
+
+ORDERS:
+- order_id
+- customer_id
+- order_date
+- status
+- currency
+- subtotal
+- discount
+- tax
+- shipping
+- total
+- payment_id
+- shipping_address_id
+- created_at
+- updated_at
+
+ORDER_ITEMS:
+- order_item_id
+- order_id
+- product_id
+- quantity
+- unit_price
+- discount
+- line_total
+- created_at
+
+PAYMENTS:
+- payment_id
+- order_id
+- method
+- status
+- amount
+- currency
+- transaction_timestamp
+- gateway
+- failure_reason
+
+SHIPMENTS:
+- shipment_id
+- order_id
+- carrier
+- method
+- status
+- shipped_at
+- delivered_at
+- estimated_delivery_date
+- actual_delivery_date
+- warehouse
+
+DAILY_BUSINESS_METRICS:
+- metric_date
+- total_orders
+- revenue
+- average_order_value
+- conversion_rate
+- refund_rate
+- payment_failure_rate
+- average_delivery_days
+
+Generate/use approximately:
+- 10,000 customers
+- 1,000 products
+- 100,000 orders
+- ~180,000+ order_items
+- 100,000 payments
+- 100,000 shipments
+- 180 days of daily business metrics
+
+The base data should be clean.
+
+Do NOT permanently corrupt the base data.
+
+Instead create incident/failure injection mechanisms that modify a sandbox or controlled copy.
+
+==================================================
+6. METADATA DATA
+==================================================
+
+Create these PostgreSQL tables.
+
+PIPELINE_METADATA:
+- pipeline_id
+- pipeline_name
+- source
+- target
+- schedule
+- owner
+- pipeline_type
+- last_run_at
+- status
+- runtime_seconds
+
+DATA_LINEAGE:
+- lineage_id
+- source_table
+- target_table
+- transformation
+- pipeline_id
+- dependency
+
+SCHEMA_HISTORY:
+- schema_version_id
+- table_name
+- column_name
+- data_type
+- nullable
+- recorded_at
+- change_type
+- previous_column_name
+
+PIPELINE_LOGS:
+- log_id
+- pipeline_id
+- execution_id
+- start_time
+- end_time
+- status
+- rows_read
+- rows_written
+- error_type
+- error_message
+
+INCIDENTS:
+- incident_id
+- detected_at
+- resolved_at
+- severity
+- affected_table
+- incident_type
+- symptoms
+- root_cause
+- resolution
+- status
+
+INCIDENT_FIXES:
+- fix_id
+- incident_id
+- root_cause
+- sql_patch
+- python_patch
+- verification_result
+- approved
+- deployment_status
+
+Also create:
+
+AGENT_EXECUTIONS:
+- execution_id
+- incident_id
+- workflow_id
+- agent_name
+- started_at
+- completed_at
+- status
+- input_summary
+- output_summary
+- error
+
+APPROVALS:
+- approval_id
+- incident_id
+- fix_id
+- requested_at
+- approved_at
+- reviewer
+- decision
+- reason
+
+DEPLOYMENTS:
+- deployment_id
+- incident_id
+- fix_id
+- environment
+- started_at
+- completed_at
+- status
+- rollback_available
+- rollback_status
+
+RISK_ASSESSMENTS:
+- risk_id
+- incident_id
+- fix_id
+- score
+- level
+- reasons
+- created_at
+
+AUDIT_LOGS:
+- audit_id
+- incident_id
+- actor
+- action
+- target
+- timestamp
+- result
+- metadata
+
+==================================================
+7. FAILURE SCENARIOS
+==================================================
+
+Implement at least these 10 failure scenarios.
+
+SCN-01:
+ROW COUNT COLLAPSE
+
+Example:
+Expected 100,000 orders.
+Only 20,000 arrive.
+
+Detection:
+- row count anomaly
+- pipeline rows_written anomaly
+
+Likely root cause:
+- partial ingestion
+
+Possible remediation:
+- rerun/recover missing batch
+
+Risk:
+MEDIUM/HIGH depending on impact.
+
+--------------------------------------------------
+
+SCN-02:
+SCHEMA CHANGE
+
+Example:
+A source column changes:
+customer_id → customer_identifier
+
+Downstream transformation still expects customer_id.
+
+Detection:
+- schema mismatch
+- pipeline failure
+- lineage analysis
+- schema history
+
+Investigator should discover:
+- source schema changed
+- downstream transformation references old column
+- schema_history confirms recent change
+- lineage identifies affected tables
+
+Engineer should propose:
+- update transformation mapping
+
+This should be the FIRST end-to-end scenario.
+
+--------------------------------------------------
+
+SCN-03:
+NULL EXPLOSION
+
+Example:
+A previously non-null column suddenly has a high NULL percentage.
+
+Detection:
+- NULL rate exceeds threshold
+
+Investigation:
+- compare historical quality metrics
+- inspect pipeline logs
+- inspect recent transformation
+- identify stage introducing NULLs
+
+Fix:
+- repair transformation or source mapping
+
+--------------------------------------------------
+
+SCN-04:
+DUPLICATE RECORDS
+
+Example:
+same order_id appears multiple times.
+
+Detection:
+- uniqueness violation
+- duplicate count anomaly
+
+Fix:
+- deduplicate according to deterministic rule
+- preserve canonical record
+
+--------------------------------------------------
+
+SCN-05:
+STALE PIPELINE
+
+Example:
+pipeline has not run for expected schedule.
+
+Detection:
+- freshness violation
+- last_run_at too old
+
+Investigation:
+- pipeline logs
+- execution history
+
+Fix:
+- restart/retry failed pipeline
+
+--------------------------------------------------
+
+SCN-06:
+BAD TRANSFORMATION
+
+Example:
+revenue calculation is wrong due to transformation logic.
+
+Detection:
+- business metric anomaly
+- revenue mismatch
+- AOV anomaly
+
+Investigation:
+- inspect transformation
+- compare source and derived metrics
+
+Fix:
+- correct transformation
+
+--------------------------------------------------
+
+SCN-07:
+FOREIGN KEY CORRUPTION
+
+Example:
+orders reference customer_ids that do not exist.
+
+Detection:
+- referential integrity failure
+
+Fix:
+- recover correct customer mapping
+- reject invalid records if required
+
+--------------------------------------------------
+
+SCN-08:
+PARTIAL INGESTION
+
+Example:
+only part of an external API response is loaded.
+
+Detection:
+- row count mismatch
+- ingestion logs
+- expected batch size
+
+Fix:
+- re-fetch missing records
+
+--------------------------------------------------
+
+SCN-09:
+PAYMENT DUPLICATION
+
+Example:
+same payment transaction ingested twice.
+
+Detection:
+- duplicate transaction identifier
+- payment amount anomaly
+
+Fix:
+- identify canonical transaction
+- remove duplicate safely
+
+--------------------------------------------------
+
+SCN-10:
+LATE ARRIVING DATA
+
+Example:
+events arrive after the expected business date.
+
+Detection:
+- freshness / temporal anomaly
+
+Fix:
+- late-arriving data reconciliation
+
+==================================================
+8. DATA OBSERVABILITY ENGINE
+==================================================
+
+Implement deterministic monitoring.
+
+At minimum support:
+
+1. Row count checks
+2. Freshness checks
+3. NULL percentage
+4. Duplicate detection
+5. Schema validation
+6. Foreign key integrity
+7. Business metric anomaly checks
+8. Pipeline execution checks
+
+Each check should produce something like:
+
+{
+  "metric": "null_rate",
+  "table": "orders",
+  "column": "customer_id",
+  "current_value": 0.27,
+  "expected_max": 0.01,
+  "status": "FAIL"
+}
+
+Create an Incident Detection Engine.
+
+It should:
+- run checks
+- compare against thresholds/history
+- generate incidents
+- assign initial severity
+- attach evidence
+
+Do NOT use an LLM for basic deterministic detection.
+
+==================================================
+9. INCIDENT OBJECT
+==================================================
+
+Create a central incident state.
+
+Example:
+
+IncidentState:
+
+- incident_id
+- incident_type
+- severity
+- affected_table
+- detected_at
+- symptoms
+- evidence
+- investigation
+- root_cause
+- confidence
+- similar_incidents
+- proposed_fix
+- control_decision
+- simulation_result
+- verification_result
+- risk_assessment
+- approval_status
+- deployment_status
+- rollback_status
+- final_status
+
+Use Pydantic models where appropriate.
+
+==================================================
+10. LANGGRAPH WORKFLOW
+==================================================
+
+Use LangGraph as the orchestration engine.
+
+Create a state graph similar to:
+
+START
+ ↓
+LoadIncident
+ ↓
+RetrieveMemory
+ ↓
+Investigate
+ ↓
+RootCauseDecision
+ ↓
+GenerateFix
+ ↓
+ControlCheck
+ ↓
+SandboxSimulation
+ ↓
+Verify
+ ↓
+RiskAssessment
+ ↓
+ ┌─────────────────────┐
+ │                     │
+ LOW/MEDIUM           HIGH/CRITICAL
+ │                     │
+AutoDeploy         HumanApproval
+ │                     │
+ └──────────┬──────────┘
+            ↓
+       ProductionDeploy
+            ↓
+       PostDeployVerify
+            ↓
+       ┌────┴────┐
+       PASS      FAIL
+        │         │
+      Close    Rollback
+        │         │
+        └────┬────┘
+             ↓
+       StoreMemory
+             ↓
+            END
+
+Add:
+- retry handling
+- error handling
+- workflow status
+- checkpoints if practical
+- clear state transitions
+- audit events
+
+==================================================
+11. INVESTIGATOR AGENT
+==================================================
+
+Build an Investigator Agent.
+
+Its responsibility:
+- understand the incident
+- collect evidence
+- inspect metadata
+- inspect logs
+- inspect lineage
+- query Exasol
+- compare historical quality metrics
+- retrieve similar incidents from Qdrant
+- determine probable root cause
+- provide confidence score
+
+Tools available to Investigator:
+
+SQLTool
+MetadataTool
+LineageTool
+PipelineLogTool
+QualityMetricTool
+MemorySearchTool
+
+The Investigator should NOT modify data.
+
+Its output should be structured:
+
+{
+  "root_cause": "...",
+  "confidence": 0.92,
+  "evidence": [
+     "...",
+     "..."
+  ],
+  "affected_components": [],
+  "recommended_action": "..."
+}
+
+Make the reasoning understandable and auditable.
+
+==================================================
+12. ENGINEER / REMEDIATION AGENT
+==================================================
+
+Build an Engineer Agent.
+
+Responsibilities:
+- receive investigation
+- formulate remediation
+- generate SQL or Python patch
+- explain the fix
+- estimate affected rows
+- identify potential blast radius
+
+The Engineer Agent MUST NOT directly execute production modifications.
+
+It produces a proposal:
+
+{
+  "fix_type": "SQL",
+  "sql": "...",
+  "description": "...",
+  "expected_effect": "...",
+  "estimated_rows_affected": 1234,
+  "rollback_strategy": "...",
+  "risk_factors": []
+}
+
+==================================================
+13. AGENT CONTROL LAYER
+==================================================
+
+This is one of the most important components.
+
+NEVER allow the LLM to directly execute arbitrary SQL against production.
+
+Implement a deterministic Agent Control Layer.
+
+It must validate:
+- allowed tables
+- allowed operations
+- SQL syntax
+- dangerous statements
+- DELETE scope
+- UPDATE scope
+- DROP
+- TRUNCATE
+- ALTER
+- unrestricted UPDATE
+- unrestricted DELETE
+- query timeout
+- row limits
+- execution time
+- environment
+- agent permissions
+
+Example policy:
+
+READ:
+Allowed.
+
+INSERT:
+Sandbox only unless explicitly authorized.
+
+UPDATE:
+Sandbox first.
+
+DELETE:
+Sandbox first and approval required.
+
+DROP:
+Forbidden for agents.
+
+TRUNCATE:
+Forbidden for agents.
+
+ALTER:
+Forbidden by default.
+
+Production writes:
+Only after:
+- successful sandbox simulation
+- successful verification
+- risk policy approval
+- human approval when required
+
+The control layer should return:
+
+{
+  "allowed": false,
+  "reason": "...",
+  "risk": "HIGH"
+}
+
+==================================================
+14. SQL SAFETY
+==================================================
+
+Implement SQL validation.
+
+At minimum detect:
+- DROP
+- TRUNCATE
+- unrestricted DELETE
+- unrestricted UPDATE
+- ALTER
+- multiple statements
+- comments intended to bypass restrictions
+- system/catalog access
+
+Prefer a SQL parser if practical.
+
+Do not rely only on regex.
+
+Also enforce:
+- statement timeout
+- maximum affected rows
+- allowed schema/table list
+
+==================================================
+15. SIMULATION SANDBOX
+==================================================
+
+Every remediation MUST be tested in a sandbox before production.
+
+The sandbox should:
+
+1. Create isolated environment.
+2. Copy or clone relevant data.
+3. Record before metrics.
+4. Execute proposed remediation.
+5. Record after metrics.
+6. Calculate differences.
+7. Run verification checks.
+8. Destroy sandbox after completion or preserve for debugging.
+
+Example:
+
+BEFORE:
+orders = 100000
+null_customer_id = 25000
+
+AFTER:
+orders = 100000
+null_customer_id = 200
+
+Improvement:
+99.2%
+
+The simulation result should contain:
+
+{
+  "status": "PASS",
+  "before_metrics": {},
+  "after_metrics": {},
+  "delta": {},
+  "rows_affected": 24800,
+  "blast_radius": "LOW",
+  "verification": {}
+}
+
+==================================================
+16. VERIFICATION ENGINE
+==================================================
+
+Build deterministic verification.
+
+Checks should include:
+
+DATA:
+- row count
+- NULL rate
+- duplicates
+- FK integrity
+- uniqueness
+- valid ranges
+
+BUSINESS:
+- revenue
+- order count
+- AOV
+- refund rate
+- payment failure rate
+- delivery metrics
+
+PIPELINE:
+- freshness
+- pipeline status
+- rows written
+
+DOWNSTREAM:
+- affected derived tables
+- metric consistency
+
+A fix is NOT considered successful merely because the SQL executed successfully.
+
+It must improve or restore data quality.
+
+==================================================
+17. BLAST RADIUS ANALYSIS
+==================================================
+
+Use lineage metadata.
+
+Given affected table X:
+- find downstream tables
+- identify dependent pipelines
+- identify business metrics
+- estimate affected rows
+- estimate affected consumers
+
+Return:
+
+{
+  "affected_tables": [],
+  "affected_pipelines": [],
+  "business_metrics": [],
+  "estimated_impact": "...",
+  "blast_radius": "LOW|MEDIUM|HIGH|CRITICAL"
+}
+
+==================================================
+18. RISK ENGINE
+==================================================
+
+Implement a deterministic risk engine.
+
+Do NOT let the LLM make the final risk decision.
+
+Risk should depend on:
+
+- number of rows affected
+- number of tables affected
+- whether production write is required
+- whether DELETE is involved
+- whether financial/payment data is affected
+- blast radius
+- confidence in root cause
+- verification quality
+- rollback availability
+- downstream dependencies
+
+Example:
+
+LOW:
+- sandbox verified
+- small number of rows
+- no financial impact
+- reversible
+- low blast radius
+- high confidence
+
+MEDIUM:
+- moderate impact
+- multiple tables
+- reversible
+
+HIGH:
+- large number of rows
+- financial data
+- significant downstream impact
+- weak confidence
+
+CRITICAL:
+- destructive operation
+- irreversible change
+- high financial/business impact
+
+Decision:
+
+LOW:
+Auto-deploy.
+
+MEDIUM:
+Additional validation, optionally approval.
+
+HIGH:
+Human approval required.
+
+CRITICAL:
+Human approval required and potentially block deployment entirely.
+
+==================================================
+19. HUMAN APPROVAL
+==================================================
+
+Create approval workflow.
+
+When approval is required, the dashboard/API should show:
+
+Incident:
+Root cause:
+Evidence:
+Proposed fix:
+SQL/Python:
+Rows affected:
+Before metrics:
+After metrics:
+Verification:
+Blast radius:
+Risk score:
+Risk reasons:
+Rollback strategy:
+
+Actions:
+- APPROVE
+- REJECT
+
+Approval must be recorded in PostgreSQL.
+
+No production deployment until approval is recorded.
+
+==================================================
+20. PRODUCTION DEPLOYMENT
+==================================================
+
+Production deployment must be controlled.
+
+Deployment flow:
+
+1. Confirm policy approval.
+2. Confirm sandbox verification.
+3. Capture rollback information.
+4. Execute remediation.
+5. Record deployment.
+6. Run post-deployment verification.
+7. If PASS:
+   - close incident.
+8. If FAIL:
+   - rollback.
+9. Verify rollback.
+10. Mark incident accordingly.
+
+==================================================
+21. ROLLBACK
+==================================================
+
+Every production mutation must have a rollback strategy.
+
+Possible strategies:
+- transaction rollback
+- backup table
+- snapshot
+- inverse SQL
+- before-state capture
+
+Do not deploy a fix if a safe rollback cannot be established for a high-risk mutation.
+
+==================================================
+22. QDRANT MEMORY
+==================================================
+
+Use Qdrant for incident memory.
+
+Store:
+
+- incident type
+- symptoms
+- affected table
+- root cause
+- investigation summary
+- fix
+- verification result
+- deployment outcome
+- rollback result
+- metadata
+
+Generate embeddings from incident summaries.
+
+When a new incident occurs:
+1. Generate query embedding.
+2. Search Qdrant.
+3. Retrieve similar incidents.
+4. Give relevant historical fixes to Investigator/Engineer.
+5. Use them as evidence, not unquestioned truth.
+
+Important:
+The system should never blindly reuse an old fix.
+
+It must validate that:
+- schema is compatible
+- table is compatible
+- current evidence matches
+- verification succeeds
+
+==================================================
+23. OBSERVABILITY OF THE AGENT SYSTEM
+==================================================
+
+Track:
+- workflow execution
+- agent execution time
+- tool calls
+- SQL queries
+- errors
+- retries
+- decisions
+- approvals
+- deployments
+- rollbacks
+- verification results
+
+Create audit logs.
+
+Every meaningful action should be traceable.
+
+Example:
+
+INCIDENT_CREATED
+INVESTIGATION_STARTED
+MEMORY_SEARCH
+ROOT_CAUSE_IDENTIFIED
+FIX_GENERATED
+CONTROL_CHECK_PASSED
+SANDBOX_STARTED
+SANDBOX_FIX_EXECUTED
+VERIFICATION_PASSED
+RISK_ASSESSED
+APPROVAL_REQUESTED
+APPROVAL_GRANTED
+PRODUCTION_DEPLOYED
+POST_DEPLOY_VERIFICATION
+INCIDENT_RESOLVED
+
+==================================================
+24. FASTAPI API
+==================================================
+
+Create APIs such as:
+
+POST /incidents
+GET /incidents
+GET /incidents/{incident_id}
+
+POST /incidents/{incident_id}/investigate
+
+POST /incidents/{incident_id}/remediate
+
+POST /incidents/{incident_id}/simulate
+
+POST /incidents/{incident_id}/verify
+
+POST /incidents/{incident_id}/approve
+
+POST /incidents/{incident_id}/reject
+
+POST /incidents/{incident_id}/deploy
+
+POST /incidents/{incident_id}/rollback
+
+GET /incidents/{incident_id}/timeline
+
+GET /incidents/{incident_id}/risk
+
+GET /incidents/{incident_id}/lineage
+
+GET /incidents/{incident_id}/simulation
+
+GET /health
+
+Also provide an endpoint to trigger failure scenarios, for example:
+
+POST /scenarios/{scenario_id}/inject
+
+This should allow testing.
+
+==================================================
+25. FAILURE INJECTION SYSTEM
+==================================================
+
+Create a deterministic failure injection framework.
+
+Example:
+
+POST /scenarios/SCN-02/inject
+
+It should:
+- create the failure
+- create/update relevant metadata/logs
+- trigger detection
+- create incident
+- start workflow
+
+Also provide:
+
+POST /scenarios/reset
+
+This should restore the clean baseline.
+
+The user must be able to repeatedly run:
+
+RESET
+→ INJECT FAILURE
+→ DETECT
+→ INVESTIGATE
+→ FIX
+→ SIMULATE
+→ VERIFY
+→ DEPLOY
+→ VERIFY
+→ CLOSE
+
+==================================================
+26. FIRST DEMO SCENARIO
+==================================================
+
+The primary demo must be SCN-02 Schema Change.
+
+Expected demo:
+
+1. System is healthy.
+2. Inject schema change.
+3. Pipeline fails.
+4. Observability detects incident.
+5. FastAPI receives incident.
+6. LangGraph starts.
+7. Investigator:
+   - checks pipeline logs
+   - checks schema history
+   - checks lineage
+   - queries Exasol
+   - searches Qdrant
+8. Investigator identifies root cause:
+   source column changed from customer_id to customer_identifier.
+9. Engineer generates transformation mapping fix.
+10. Control layer validates SQL.
+11. Sandbox executes fix.
+12. Verifier confirms:
+   - rows restored
+   - NULLs fixed
+   - downstream metrics correct
+13. Risk engine evaluates.
+14. If safe, auto-deploy.
+15. Production verification passes.
+16. Incident closes.
+17. Full incident/fix/outcome stored in Qdrant.
+
+This should be the "hero demo" of the project.
+
+==================================================
+27. SECOND DEMO SCENARIO
+==================================================
+
+Also fully support NULL Explosion.
+
+Example flow:
+
+1. Inject NULL corruption.
+2. Detection engine detects abnormal NULL rate.
+3. Investigator checks historical quality metrics.
+4. Investigator checks pipeline logs.
+5. Investigator checks transformation.
+6. Root cause identified.
+7. Engineer proposes fix.
+8. Sandbox.
+9. Verification.
+10. Risk.
+11. Deployment/approval.
+12. Production verification.
+13. Memory storage.
+
+==================================================
+28. PROJECT STRUCTURE
+==================================================
+
+Use clean architecture.
+
+Suggested structure:
+
+closed-loop-data-agent/
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   │
+│   │   ├── api/
+│   │   │   ├── incidents.py
+│   │   │   ├── scenarios.py
+│   │   │   ├── approvals.py
+│   │   │   └── health.py
+│   │   │
+│   │   ├── agents/
+│   │   │   ├── investigator.py
+│   │   │   ├── engineer.py
+│   │   │   └── verifier.py
+│   │   │
+│   │   ├── orchestration/
+│   │   │   ├── graph.py
+│   │   │   ├── state.py
+│   │   │   └── nodes.py
+│   │   │
+│   │   ├── tools/
+│   │   │   ├── sql_tool.py
+│   │   │   ├── metadata_tool.py
+│   │   │   ├── lineage_tool.py
+│   │   │   ├── quality_tool.py
+│   │   │   ├── pipeline_log_tool.py
+│   │   │   └── memory_tool.py
+│   │   │
+│   │   ├── control/
+│   │   │   ├── policy_engine.py
+│   │   │   ├── sql_validator.py
+│   │   │   ├── permissions.py
+│   │   │   └── circuit_breaker.py
+│   │   │
+│   │   ├── detection/
+│   │   │   ├── detector.py
+│   │   │   ├── rules.py
+│   │   │   └── incident_creator.py
+│   │   │
+│   │   ├── simulation/
+│   │   │   ├── sandbox.py
+│   │   │   ├── executor.py
+│   │   │   └── metrics.py
+│   │   │
+│   │   ├── verification/
+│   │   │   ├── verifier.py
+│   │   │   ├── data_checks.py
+│   │   │   ├── business_checks.py
+│   │   │   └── downstream_checks.py
+│   │   │
+│   │   ├── risk/
+│   │   │   ├── risk_engine.py
+│   │   │   └── rules.py
+│   │   │
+│   │   ├── deployment/
+│   │   │   ├── deployer.py
+│   │   │   └── rollback.py
+│   │   │
+│   │   ├── memory/
+│   │   │   ├── qdrant_client.py
+│   │   │   ├── embeddings.py
+│   │   │   └── retrieval.py
+│   │   │
+│   │   ├── db/
+│   │   │   ├── postgres.py
+│   │   │   ├── exasol.py
+│   │   │   ├── models.py
+│   │   │   └── repositories/
+│   │   │
+│   │   ├── schemas/
+│   │   │   ├── incident.py
+│   │   │   ├── fix.py
+│   │   │   ├── verification.py
+│   │   │   └── risk.py
+│   │   │
+│   │   ├── services/
+│   │   │   ├── incident_service.py
+│   │   │   └── workflow_service.py
+│   │   │
+│   │   └── config.py
+│   │
+│   ├── tests/
+│   │   ├── unit/
+│   │   ├── integration/
+│   │   └── scenarios/
+│   │
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── api/
+│   │   └── types/
+│   ├── package.json
+│   └── Dockerfile
+│
+├── data/
+│   ├── customers.csv
+│   ├── products.csv
+│   ├── orders.csv
+│   ├── order_items.csv
+│   ├── payments.csv
+│   ├── shipments.csv
+│   └── daily_business_metrics.csv
+│
+├── metadata/
+│   ├── pipeline_metadata.csv
+│   ├── data_lineage.csv
+│   ├── schema_history.csv
+│   └── pipeline_logs.csv
+│
+├── quality/
+│   └── data_quality_metrics.csv
+│
+├── incidents/
+│   ├── incidents.csv
+│   └── incident_fixes.csv
+│
+├── failure_scenarios/
+│   └── failure_scenarios.csv
+│
+├── sql/
+│   ├── postgres/
+│   └── exasol/
+│
+├── scripts/
+│   ├── generate_data.py
+│   ├── load_postgres.py
+│   ├── load_exasol.py
+│   ├── seed_memory.py
+│   └── reset_environment.py
+│
+├── tests/
+│
+├── docker-compose.yml
+├── .env.example
+├── README.md
+└── Makefile
+
+You may improve this structure if you have a better clean architecture, but keep it understandable.
+
+==================================================
+29. CONFIGURATION
+==================================================
+
+Never hardcode secrets.
+
+Use .env:
+
+POSTGRES_HOST=
+POSTGRES_PORT=
+POSTGRES_DB=
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+
+EXASOL_DSN=
+EXASOL_USER=
+EXASOL_PASSWORD=
+
+QDRANT_URL=
+QDRANT_API_KEY=
+
+OPENAI_API_KEY=
+OPENAI_MODEL=
+
+APP_ENV=
+LOG_LEVEL=
+
+Provide .env.example.
+
+==================================================
+30. DOCKER
+==================================================
+
+Create Docker Compose for local development.
+
+At minimum:
+
+- backend
+- frontend
+- postgres
+- qdrant
+
+Exasol may be external because local Exasol setup can be environment-specific.
+
+Make the application support:
+- real Exasol connection
+- development fallback if Exasol is unavailable
+
+IMPORTANT:
+Do not silently replace Exasol permanently with PostgreSQL.
+
+The code should maintain a clear Exasol analytical adapter.
+
+==================================================
+31. EXASOL ADAPTER
+==================================================
+
+Create a dedicated Exasol repository/adapter.
+
+The system should be able to run queries such as:
+
+SELECT COUNT(*)
+FROM orders;
+
+SELECT COUNT(*)
+FROM orders
+WHERE customer_id IS NULL;
+
+SELECT order_date, SUM(total)
+FROM orders
+GROUP BY order_date;
+
+Use parameterized queries where possible.
+
+Do not let arbitrary agent-generated SQL bypass the control layer.
+
+==================================================
+32. POSTGRESQL ADAPTER
+==================================================
+
+Use SQLAlchemy.
+
+Create:
+- models
+- repositories
+- migrations or initialization scripts
+
+Repositories should isolate persistence from business logic.
+
+==================================================
+33. LLM DESIGN
+==================================================
+
+Use structured outputs.
+
+Do not depend on free-form LLM text for critical workflow decisions.
+
+LLM should primarily perform:
+- reasoning
+- investigation synthesis
+- root cause hypotheses
+- remediation proposal
+- explanation
+
+Deterministic code should perform:
+- policy checks
+- SQL safety
+- execution
+- verification
+- risk scoring
+- deployment
+- rollback
+- final status
+
+==================================================
+34. PROMPT DESIGN
+==================================================
+
+Create dedicated prompts for:
+
+Investigator:
+- analyze incident
+- use supplied evidence
+- do not invent facts
+- identify root cause
+- state uncertainty
+
+Engineer:
+- produce safe remediation
+- prefer minimal change
+- explain assumptions
+- specify rollback
+- never request unrestricted production access
+
+Verifier:
+- interpret verification results
+- explain whether fix succeeded
+- never override deterministic failed checks
+
+==================================================
+35. ERROR HANDLING
+==================================================
+
+Implement:
+- retries for transient failures
+- timeout handling
+- structured errors
+- workflow recovery
+- circuit breakers
+- safe failure
+
+If an agent fails:
+- do not deploy
+- preserve incident state
+- log error
+- expose incident as requiring human attention
+
+==================================================
+36. IDEMPOTENCY
+==================================================
+
+Important.
+
+A remediation should be idempotent whenever possible.
+
+Running the same fix twice should not corrupt the data.
+
+Implement idempotency checks for:
+- incident processing
+- deployment
+- remediation
+- rollback
+
+==================================================
+37. CONCURRENCY
+==================================================
+
+Prevent two remediation workflows from simultaneously modifying the same dataset.
+
+Implement a basic locking mechanism in PostgreSQL.
+
+For example:
+- incident/table-level lock
+- deployment lock
+
+==================================================
+38. SECURITY
+==================================================
+
+Implement:
+- environment-based secrets
+- least privilege
+- SQL allowlists
+- audit logs
+- no raw secrets in logs
+- input validation
+- API validation
+- production write restrictions
+
+Do not expose database credentials through API responses.
+
+==================================================
+39. LOGGING
+==================================================
+
+Use structured logging.
+
+Every log should contain relevant IDs:
+
+- incident_id
+- workflow_id
+- execution_id
+- agent
+- action
+- timestamp
+- status
+
+==================================================
+40. TESTING
+==================================================
+
+Write meaningful tests.
+
+UNIT TESTS:
+- risk engine
+- SQL validator
+- policy engine
+- quality checks
+- blast radius calculation
+- rollback logic
+
+INTEGRATION TESTS:
+- FastAPI
+- PostgreSQL
+- Qdrant
+- workflow
+
+END-TO-END:
+SCN-02
+SCN-03
+at minimum.
+
+Test:
+- detection
+- investigation
+- fix generation
+- control
+- sandbox
+- verification
+- risk
+- approval
+- deployment
+- rollback
+- memory
+
+==================================================
+41. DEMO MODE
+==================================================
+
+Create a simple demo command.
+
+For example:
+
+python -m app.demo
+
+It should:
+
+1. reset environment
+2. inject SCN-02
+3. trigger incident detection
+4. run autonomous workflow
+5. print each workflow stage
+6. display root cause
+7. display proposed fix
+8. display simulation results
+9. display risk
+10. deploy if allowed
+11. verify
+12. store memory
+13. display final incident summary
+
+The output should look professional.
+
+==================================================
+42. CLI
+==================================================
+
+Provide useful CLI commands such as:
+
+make setup
+make seed
+make reset
+make test
+make run
+make demo
+
+Or equivalent Python commands.
+
+==================================================
+43. FRONTEND DASHBOARD
+==================================================
+
+Create a clean engineering dashboard.
+
+Pages:
+
+Dashboard:
+- active incidents
+- resolved incidents
+- severity distribution
+- success rate
+- auto-resolution rate
+
+Incident Detail:
+- incident information
+- timeline
+- evidence
+- root cause
+- confidence
+- similar incidents
+- proposed fix
+- SQL
+- simulation
+- verification
+- risk
+- approval
+- deployment
+- rollback
+
+Scenario Page:
+- list failure scenarios
+- inject scenario
+- reset scenario
+
+Do not spend excessive time on visual polish.
+Focus on functionality.
+
+==================================================
+44. INCIDENT TIMELINE
+==================================================
+
+Every incident should have a visible timeline.
+
+Example:
+
+10:31 Incident detected
+10:31 Investigation started
+10:32 Schema history inspected
+10:32 Root cause identified
+10:33 Similar incident found
+10:33 Fix generated
+10:34 Control check passed
+10:34 Sandbox started
+10:35 Simulation passed
+10:35 Risk LOW
+10:35 Auto deployment started
+10:36 Production verification passed
+10:36 Incident resolved
+
+==================================================
+45. MEMORY LEARNING
+==================================================
+
+After every resolved incident:
+
+Create memory record:
+
+{
+  "incident_type": "...",
+  "symptoms": "...",
+  "root_cause": "...",
+  "fix": "...",
+  "verification": "...",
+  "outcome": "SUCCESS",
+  "environment": "production"
+}
+
+Embed it and store in Qdrant.
+
+On future incidents, retrieve top-k similar incidents.
+
+Display:
+"Similar incidents found: 3"
+
+==================================================
+46. IMPORTANT SAFETY PRINCIPLE
+==================================================
+
+Use this rule throughout the project:
+
+AGENTS PROPOSE.
+CONTROL LAYER AUTHORIZES.
+EXECUTOR EXECUTES.
+VERIFIER PROVES.
+
+Never violate this architecture.
+
+The LLM must NOT:
+- directly write production SQL
+- directly execute arbitrary SQL
+- approve its own high-risk action
+- declare success without deterministic verification
+- bypass human approval
+- modify audit logs
+- disable safety controls
+
+==================================================
+47. DEVELOPMENT STRATEGY
+==================================================
+
+Do NOT try to build everything randomly.
+
+Build in this order:
+
+PHASE 1:
+Project skeleton
+Configuration
+Docker
+PostgreSQL
+Qdrant
+
+PHASE 2:
+Data generation/loading
+Exasol adapter
+PostgreSQL metadata
+
+PHASE 3:
+Data observability
+Quality checks
+Incident detection
+
+PHASE 4:
+FastAPI
+Incident APIs
+
+PHASE 5:
+LangGraph state/workflow
+
+PHASE 6:
+Investigator Agent
+SQL/metadata/lineage tools
+
+PHASE 7:
+Engineer Agent
+
+PHASE 8:
+Agent Control Layer
+SQL validation
+permissions
+
+PHASE 9:
+Sandbox
+
+PHASE 10:
+Verification
+
+PHASE 11:
+Risk Engine
+
+PHASE 12:
+Approval workflow
+
+PHASE 13:
+Production deployment
+Rollback
+
+PHASE 14:
+Qdrant memory
+
+PHASE 15:
+Frontend
+
+PHASE 16:
+Testing
+
+PHASE 17:
+Demo
+
+PHASE 18:
+Documentation
+
+==================================================
+48. DO NOT OVERENGINEER
+==================================================
+
+This is a portfolio project.
+
+Do NOT introduce:
+- Kubernetes
+- microservices everywhere
+- Kafka unless necessary
+- dozens of agents
+- complicated distributed systems
+- unnecessary cloud infrastructure
+
+Keep the architecture realistic but executable locally.
+
+Use a modular monolith for the backend.
+
+The conceptual architecture should still be production-grade.
+
+==================================================
+49. THREE MAIN AGENTS
+==================================================
+
+Keep the agent system focused.
+
+Use:
+
+1. INVESTIGATOR AGENT
+   Detective.
+
+2. ENGINEER AGENT
+   Fix builder.
+
+3. VERIFIER AGENT
+   Verification reasoning/explanation.
+
+Everything safety-critical should remain deterministic.
+
+==================================================
+50. EXPECTED OUTPUT
+==================================================
+
+I want you to actually create the project, not merely explain how to create it.
+
+Generate:
+- source code
+- configuration
+- SQL
+- Docker files
+- tests
+- scripts
+- frontend
+- prompts
+- README
+- architecture documentation
+- sample environment file
+- demo scripts
+
+Make the project runnable.
+
+==================================================
+51. README REQUIREMENTS
+==================================================
+
+README must contain:
+
+1. Project overview
+2. Problem statement
+3. Why this matters
+4. Architecture diagram
+5. Component explanation
+6. Technology stack
+7. Database architecture
+8. Agent architecture
+9. Safety architecture
+10. Workflow
+11. Failure scenarios
+12. Setup instructions
+13. Environment variables
+14. Docker instructions
+15. Database loading
+16. Exasol configuration
+17. Qdrant configuration
+18. Running the demo
+19. API documentation
+20. Testing
+21. Example incident
+22. Example root cause
+23. Example remediation
+24. Example verification
+25. Future improvements
+
+==================================================
+52. ARCHITECTURE DOCUMENT
+==================================================
+
+Create a separate ARCHITECTURE.md.
+
+Explain:
+
+- logical architecture
+- physical architecture
+- data flow
+- agent flow
+- state machine
+- security boundary
+- control layer
+- sandbox
+- risk engine
+- rollback
+- memory
+- failure handling
+
+Include Mermaid diagrams.
+
+==================================================
+53. API DOCUMENTATION
+==================================================
+
+Use FastAPI OpenAPI automatically.
+
+Also create API.md with:
+- endpoint
+- request
+- response
+- example
+- error cases
+
+==================================================
+54. EXAMPLE INCIDENT RESPONSE
+==================================================
+
+The final README should demonstrate:
+
+Incident:
+SCN-02
+
+Symptom:
+Pipeline failed after source schema changed.
+
+Investigation:
+Schema history shows customer_id renamed to customer_identifier.
+
+Lineage:
+orders transformation depends on customer_id.
+
+Root cause:
+Downstream transformation was not updated after upstream schema change.
+
+Proposed fix:
+Update mapping.
+
+Simulation:
+PASS.
+
+Verification:
+PASS.
+
+Risk:
+LOW/MEDIUM.
+
+Deployment:
+AUTO.
+
+Post-deployment:
+PASS.
+
+Final:
+RESOLVED.
+
+Memory:
+Stored in Qdrant.
+
+==================================================
+55. QUALITY BAR
+==================================================
+
+Code should be:
+- readable
+- typed
+- modular
+- documented
+- testable
+- maintainable
+
+Use:
+- type hints
+- Pydantic
+- dependency injection where useful
+- repository pattern where useful
+- service layer
+- clear interfaces
+
+Avoid:
+- giant files
+- giant functions
+- global mutable state
+- hardcoded credentials
+- duplicated logic
+
+==================================================
+56. IMPORTANT IMPLEMENTATION DETAIL
+==================================================
+
+If Exasol is unavailable in the development environment:
+
+Do NOT stop the entire project.
+
+Implement:
+- ExasolAdapter interface
+- Exasol implementation
+- local development analytical adapter for tests
+
+Make the production architecture clearly Exasol-compatible.
+
+Document exactly how to connect real Exasol.
+
+The application must be runnable locally without requiring a paid Exasol environment.
+
+==================================================
+57. IMPORTANT LLM DETAIL
+==================================================
+
+Make the LLM provider configurable.
+
+Create an interface like:
+
+LLMProvider
+
+Then implement an OpenAI-compatible provider.
+
+Do not hardcode the model throughout the application.
+
+If no API key exists:
+- provide deterministic/mock agent responses for integration testing
+- clearly mark mock mode
+
+This allows the system to run without an LLM API during tests.
+
+==================================================
+58. FINAL DEMO
+==================================================
+
+The final demo should make it obvious that the system is autonomous.
+
+Run:
+
+make demo
+
+Expected conceptual output:
+
+==================================================
+AUTONOMOUS DATA INCIDENT AGENT
+==================================================
+
+[1] Injecting failure: SCN-02 Schema Change
+
+[2] Running observability checks...
+
+[3] INCIDENT DETECTED
+    Severity: HIGH
+    Table: orders
+
+[4] Investigator Agent
+    Searching pipeline logs...
+    Searching schema history...
+    Searching lineage...
+    Searching incident memory...
+
+[5] ROOT CAUSE
+    Upstream customer_id changed to customer_identifier.
+    Confidence: 0.94
+
+[6] Engineer Agent
+    Proposed remediation generated.
+
+[7] CONTROL LAYER
+    SQL validation: PASS
+    Permission check: PASS
+    Risk pre-check: PASS
+
+[8] SANDBOX
+    Executing remediation...
+
+[9] VERIFICATION
+    Row count: PASS
+    NULL rate: PASS
+    FK integrity: PASS
+    Business metrics: PASS
+
+[10] RISK ENGINE
+     Score: 18
+     Level: LOW
+     Decision: AUTO DEPLOY
+
+[11] PRODUCTION
+     Deployment: SUCCESS
+
+[12] POST-DEPLOY VERIFICATION
+     PASS
+
+[13] INCIDENT
+     RESOLVED
+
+[14] MEMORY
+     Incident stored in Qdrant.
+
+==================================================
+59. DO NOT JUST GIVE ME CODE SNIPPETS
+==================================================
+
+I want a complete working repository.
+
+If you cannot create actual files in your environment, then provide the complete file tree and full contents of each required file in a logical sequence.
+
+Do not omit important implementation details with statements such as:
+"implement similarly"
+"add your own logic"
+"etc."
+"left as an exercise"
+
+Write the actual implementation.
+
+==================================================
+60. HOW TO WORK
+==================================================
+
+Work incrementally, but keep the complete architecture in mind.
+
+At each phase:
+
+1. Implement.
+2. Run tests/checks.
+3. Fix errors.
+4. Continue.
+
+Do not prematurely simplify away important components.
+
+If a design decision is ambiguous, choose the simplest production-reasonable implementation and document it.
+
+Do not repeatedly ask me for confirmation unless a decision genuinely blocks implementation.
+
+==================================================
+61. SUCCESS CRITERIA
+==================================================
+
+The project is considered complete only when:
+
+[ ] Docker setup works
+[ ] PostgreSQL works
+[ ] Qdrant works
+[ ] data loads
+[ ] Exasol adapter exists
+[ ] observability works
+[ ] incidents are detected
+[ ] FastAPI works
+[ ] LangGraph workflow works
+[ ] Investigator works
+[ ] Engineer works
+[ ] Verifier works
+[ ] control layer works
+[ ] SQL validation works
+[ ] sandbox works
+[ ] verification works
+[ ] risk engine works
+[ ] approval works
+[ ] deployment works
+[ ] rollback works
+[ ] Qdrant memory works
+[ ] failure injection works
+[ ] SCN-02 end-to-end works
+[ ] SCN-03 end-to-end works
+[ ] frontend works
+[ ] tests exist
+[ ] README exists
+[ ] architecture documentation exists
+[ ] demo works
+
+==================================================
+62. RESUME-WORTHY DESIGN
+==================================================
+
+The final implementation should allow me to describe the project on my resume approximately as:
+
+"Built a closed-loop autonomous data incident resolution platform using LangGraph, FastAPI, Exasol, PostgreSQL and Qdrant that automatically investigates data-quality incidents, generates remediation plans, validates fixes in an isolated sandbox, performs deterministic verification and risk assessment, supports human approval and rollback, and stores resolved incidents as vector memory for future root-cause analysis."
+
+Make the actual project support this claim.
+
+==================================================
+63. START NOW
+==================================================
+
+Start by:
+
+1. Creating the complete repository structure.
+2. Inspecting the available environment.
+3. Creating configuration.
+4. Creating Docker Compose.
+5. Creating PostgreSQL schema.
+6. Creating Exasol schema/adapter.
+7. Creating data loading scripts.
+8. Creating Qdrant integration.
+9. Creating observability engine.
+10. Creating SCN-02.
+11. Building the LangGraph workflow.
+12. Building Investigator.
+13. Building Engineer.
+14. Building Control Layer.
+15. Building Sandbox.
+16. Building Verification.
+17. Building Risk Engine.
+18. Building Deployment/Rollback.
+19. Building memory.
+20. Building frontend.
+21. Writing tests.
+22. Running the complete demo.
+23. Fixing any errors.
+24. Writing final documentation.
+
+Do not stop at architecture.
+
+BUILD THE ACTUAL PROJECT.
+
+When finished, give me:
+- final project tree
+- how to run it
+- environment variables required
+- demo command
+- test command
+- API URL
+- frontend URL
+- what was implemented
+- any limitations
+- what I should show during a portfolio/interview demo
+
+The most important requirement is that the system should actually demonstrate:
+
+DETECT → INVESTIGATE → FIX → CONTROL → SIMULATE → VERIFY → RISK → APPROVE/AUTO → DEPLOY → VERIFY → ROLLBACK IF NEEDED → LEARN
+
+That is the core of the project.
